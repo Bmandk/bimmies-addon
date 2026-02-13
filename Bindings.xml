@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="BIMMIES_DELETE" Category="Bimmies">
+	Bimmies_DeleteLowestGreyItem()
+  </Binding>
+</Bindings>

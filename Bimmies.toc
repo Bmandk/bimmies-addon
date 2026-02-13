@@ -1,0 +1,8 @@
+## Interface: 11504
+## Title: Bimmies
+## Notes: Deletes the lowest value grey item stack and highlights best quest rewards
+## Author: Your Name
+## Version: 1.0.0
+## SavedVariables: BimmiesDB
+
+Bimmies.lua
