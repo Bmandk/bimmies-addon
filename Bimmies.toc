@@ -5,4 +5,19 @@
 ## Version: 1.0.0
 ## SavedVariables: BimmiesDB
 
-Bimmies.lua
+## Load order is CRITICAL - do not change without understanding dependencies!
+## Init.lua MUST be first (initializes BimmiesDB)
+## Core.lua MUST be last (registers events and calls module initializers)
+
+Init.lua
+Utils.lua
+ItemDeletion.lua
+AutoSell.lua
+AutoRepair.lua
+QuestRewards.lua
+ItemMarking.lua
+BagHooks.lua
+Pickpocket.lua
+Options.lua
+SlashCommands.lua
+Core.lua
