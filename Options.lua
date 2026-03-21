@@ -87,6 +87,44 @@ function Options_CreatePanel()
         "enableMarkingOverlay"
     )
 
+    -- Soul Shard Manager section
+    local shardHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    shardHeader:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 0, -200)
+    shardHeader:SetText("Soul Shard Manager (requires AutoHotKey script)")
+
+    local soulShardCheck = CreateCheckbox(
+        "SoulShardManager",
+        "Enable soul shard auto-delete signal",
+        "Shows a green pixel at the top-left of the screen when soul shards exceed the threshold. The external AHK script reads this pixel and triggers deletion.",
+        -226,
+        "enableSoulShardManager"
+    )
+
+    -- Threshold slider
+    local sliderLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    sliderLabel:SetPoint("TOPLEFT", description, "BOTTOMLEFT", 4, -260)
+    sliderLabel:SetText("Soul Shard threshold: " .. GetSetting("soulShardThreshold", 8))
+
+    local slider = CreateFrame("Slider", "BimmiesSoulShardSlider", panel, "OptionsSliderTemplate")
+    slider:SetPoint("TOPLEFT", sliderLabel, "BOTTOMLEFT", 0, -8)
+    slider:SetWidth(200)
+    slider:SetMinMaxValues(1, 28)
+    slider:SetValueStep(1)
+    slider:SetObeyStepOnDrag(true)
+    slider:SetValue(GetSetting("soulShardThreshold", 8))
+
+    _G[slider:GetName() .. "Low"]:SetText("1")
+    _G[slider:GetName() .. "High"]:SetText("28")
+
+    slider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        if BimmiesDB and BimmiesDB.settings then
+            BimmiesDB.settings.soulShardThreshold = value
+        end
+        sliderLabel:SetText("Soul Shard threshold: " .. value)
+        SoulShards_UpdateSignal()
+    end)
+
     -- Refresh function called when panel is opened
     panel.refresh = function()
         autoSellGreyCheck:SetChecked(GetSetting("enableAutoSellGrey", true))
@@ -95,6 +133,9 @@ function Options_CreatePanel()
         questRewardCheck:SetChecked(GetSetting("enableQuestRewardHighlight", true))
         pickpocketCheck:SetChecked(GetSetting("enablePickpocketTracker", true))
         markingOverlayCheck:SetChecked(GetSetting("enableMarkingOverlay", true))
+        soulShardCheck:SetChecked(GetSetting("enableSoulShardManager", false))
+        slider:SetValue(GetSetting("soulShardThreshold", 8))
+        sliderLabel:SetText("Soul Shard threshold: " .. GetSetting("soulShardThreshold", 8))
     end
 
     -- Default function called when defaults button is clicked
@@ -106,8 +147,11 @@ function Options_CreatePanel()
             BimmiesDB.settings.enableQuestRewardHighlight = true
             BimmiesDB.settings.enablePickpocketTracker = true
             BimmiesDB.settings.enableMarkingOverlay = true
+            BimmiesDB.settings.enableSoulShardManager = false
+            BimmiesDB.settings.soulShardThreshold = 8
             panel.refresh()
             UpdateBagItemOverlays()
+            SoulShards_UpdateSignal()
         end
     end
 

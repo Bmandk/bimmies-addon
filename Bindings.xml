@@ -2,4 +2,7 @@
   <Binding name="BIMMIES_DELETE" Category="Bimmies">
 	Bimmies_DeleteLowestGreyItem()
   </Binding>
+  <Binding name="BIMMIES_DELETE_SOULSHARD" Category="Bimmies">
+	Bimmies_DeleteSoulShard()
+  </Binding>
 </Bindings>

@@ -18,6 +18,7 @@ QuestRewards.lua
 ItemMarking.lua
 BagHooks.lua
 Pickpocket.lua
+SoulShards.lua
 Options.lua
 SlashCommands.lua
 Core.lua

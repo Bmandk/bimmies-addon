@@ -80,6 +80,8 @@ SlashCmdList["BIMMIES"] = function(msg)
             end
         end
         print(string.format("[Bimmies] Found %d overlays", count))
+    elseif msg == "ss" or msg == "shards" or msg == "soulshards" then
+        SoulShards_Status()
     elseif msg == "help" then
         print("[Bimmies] Available commands:")
         print("  /bimmies - Delete lowest value grey item")
@@ -88,6 +90,7 @@ SlashCmdList["BIMMIES"] = function(msg)
         print("  /bimmies clear - Clear all marked items")
         print("  /bimmies pp - Show pickpocket earnings")
         print("  /bimmies ppreset - Reset pickpocket earnings")
+        print("  /bimmies ss - Show soul shard status")
     else
         -- Default action: delete lowest grey item
         Bimmies_DeleteLowestGreyItem()

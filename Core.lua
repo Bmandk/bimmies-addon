@@ -54,6 +54,8 @@ coreFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "BAG_UPDATE_DELAYED" then
         -- Update overlays when bags change
         UpdateBagItemOverlays()
+        -- Update soul shard signal
+        SoulShards_UpdateSignal()
 
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         -- arg1 = unit, arg2 = castGUID, arg3 = spellID

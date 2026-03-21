@@ -22,8 +22,17 @@ initFrame:SetScript("OnEvent", function(self, event, loadedAddon)
             enableAutoRepair = true,
             enableQuestRewardHighlight = true,
             enablePickpocketTracker = true,
-            enableMarkingOverlay = true
+            enableMarkingOverlay = true,
+            enableSoulShardManager = false,
+            soulShardThreshold = 8
         }
+        -- Backfill new settings for existing users
+        if BimmiesDB.settings.enableSoulShardManager == nil then
+            BimmiesDB.settings.enableSoulShardManager = false
+        end
+        if BimmiesDB.settings.soulShardThreshold == nil then
+            BimmiesDB.settings.soulShardThreshold = 8
+        end
 
         -- Unregister this frame after initialization is complete
         self:UnregisterEvent("ADDON_LOADED")
