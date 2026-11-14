@@ -12,36 +12,92 @@ local KEYS = { "BUTTON3" }
 
 local owner = CreateFrame("Frame")
 local dummy = CreateFrame("Button", "BimmiesNoPingDummy", UIParent)
-dummy:SetScript("OnClick", function() end)
+dummy:RegisterForClicks("AnyUp", "AnyDown")
 
 local hovered -- chat tab currently under the cursor, if any
 local blocked = false
 local hooked = {}
+local pressed = false -- a blocked key is currently held (seen via the dummy's click events)
+local debugOn = false
+
+local function Debug(...)
+    if debugOn then print("[Bimmies ping]", ...) end
+end
+
+dummy:SetScript("OnClick", function(_, button, down)
+    pressed = down and true or false
+    Debug("dummy click", tostring(button), down and "down" or "up")
+end)
+
+-- The ping system ignores override bindings, so we also temporarily unbind the
+-- real binding (in memory only: SaveBindings is never called) and restore it after.
+local savedActions = {}
 
 local function Block()
     if blocked or InCombatLockdown() then return end
     if not GetSetting("enableNoPingChatTabs", true) then return end
     for _, key in ipairs(KEYS) do
+        local action = GetBindingAction(key)
+        if action and action ~= "" then
+            savedActions[key] = action
+            SetBinding(key) -- unbind
+        end
         SetOverrideBindingClick(owner, true, key, "BimmiesNoPingDummy")
     end
     blocked = true
+    pressed = false
 end
 
+local function Release()
+    ClearOverrideBindings(owner)
+    for key, action in pairs(savedActions) do
+        SetBinding(key, action)
+        savedActions[key] = nil
+    end
+    blocked = false
+end
+
+local unblockAt
+
 local function TryUnblock()
-    if not blocked or hovered then return end
+    if not blocked or hovered then unblockAt = nil return end
     if InCombatLockdown() then return end -- cleared on PLAYER_REGEN_DISABLED anyway
     -- Wait until the button is released, so the key-up can't reach Ping.
-    if IsMouseButtonDown("MiddleButton") then
+    -- Trust both our own click tracking and the client's button state.
+    if pressed or IsMouseButtonDown("MiddleButton") then
         C_Timer.After(0.05, TryUnblock)
         return
     end
-    ClearOverrideBindings(owner)
-    blocked = false
+    -- Small grace period after release in case the up-event is still in flight.
+    if not unblockAt then
+        unblockAt = GetTime() + 0.15
+    end
+    if GetTime() < unblockAt then
+        C_Timer.After(0.05, TryUnblock)
+        return
+    end
+    unblockAt = nil
+    Release()
+    Debug("unblocked")
 end
 
 local function OnEnter(tab)
     hovered = tab
     Block()
+    Debug("enter", tab:GetName() or "?", "blocked=" .. tostring(blocked),
+        "combat=" .. tostring(InCombatLockdown()),
+        "BUTTON3->" .. tostring(GetBindingAction("BUTTON3", true)),
+        "(base: " .. tostring(GetBindingAction("BUTTON3")) .. ")")
+end
+
+-- /bimmies pingdebug
+function NoPingChatTabs_ToggleDebug()
+    debugOn = not debugOn
+    local n = 0
+    for _ in pairs(hooked) do n = n + 1 end
+    print("[Bimmies] Ping debug " .. (debugOn and "on" or "off") .. ", hooked tabs: " .. n
+        .. ", setting=" .. tostring(GetSetting("enableNoPingChatTabs", true))
+        .. ", CHAT_FRAMES=" .. tostring(CHAT_FRAMES and #CHAT_FRAMES))
 end
 
 local function OnLeave(tab)
@@ -73,12 +129,25 @@ function NoPingChatTabs_Initialize()
 
     owner:RegisterEvent("PLAYER_REGEN_DISABLED")
     owner:RegisterEvent("PLAYER_REGEN_ENABLED")
-    owner:SetScript("OnEvent", function(_, event)
-        if event == "PLAYER_REGEN_DISABLED" then
+    -- These fire no matter which frame consumes the click (the chat tab eats the
+    -- middle-click, so the dummy button never sees it). pcall: not every client has them.
+    pcall(owner.RegisterEvent, owner, "GLOBAL_MOUSE_DOWN")
+    pcall(owner.RegisterEvent, owner, "GLOBAL_MOUSE_UP")
+    owner:SetScript("OnEvent", function(_, event, button)
+        if event == "GLOBAL_MOUSE_DOWN" then
+            if blocked and button == "MiddleButton" then
+                pressed = true
+                Debug("global mouse down")
+            end
+        elseif event == "GLOBAL_MOUSE_UP" then
+            if button == "MiddleButton" then
+                pressed = false
+                Debug("global mouse up")
+            end
+        elseif event == "PLAYER_REGEN_DISABLED" then
             -- Last moment bindings can still be changed: give Ping back for combat.
             if blocked then
-                ClearOverrideBindings(owner)
-                blocked = false
+                Release()
             end
         elseif event == "PLAYER_REGEN_ENABLED" then
             if hovered then Block() end

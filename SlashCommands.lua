@@ -53,6 +53,8 @@ SlashCmdList["BIMMIES"] = function(msg)
             end
         end)
         print(string.format("[Bimmies] Found %d overlays", count))
+    elseif msg == "pingdebug" then
+        NoPingChatTabs_ToggleDebug()
     elseif msg == "ss" or msg == "shards" or msg == "soulshards" then
         SoulShards_Status()
     elseif msg == "help" then
