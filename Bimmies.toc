@@ -1,4 +1,4 @@
-## Interface: 11504
+## Interface: 16001, 11504
 ## Title: Bimmies
 ## Notes: Deletes the lowest value grey item stack and highlights best quest rewards
 ## Author: Your Name
@@ -19,6 +19,8 @@ ItemMarking.lua
 BagHooks.lua
 Pickpocket.lua
 SoulShards.lua
+NoPingOnChatTabs.lua
 Options.lua
+MinimapButton.lua
 SlashCommands.lua
 Core.lua

@@ -22,7 +22,7 @@ signalFrame:Hide()
 -- Count soul shards in bags
 local function CountSoulShards()
     local count = 0
-    for bag = 0, 4 do
+    for bag = 0, Bimmies_GetLastBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
@@ -36,7 +36,7 @@ end
 
 -- Find the first soul shard slot in bags
 local function FindSoulShard()
-    for bag = 0, 4 do
+    for bag = 0, Bimmies_GetLastBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         for slot = 1, numSlots do
             local itemInfo = C_Container.GetContainerItemInfo(bag, slot)

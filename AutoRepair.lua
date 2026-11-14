@@ -9,13 +9,13 @@ function AutoRepairGear()
     end
 
     -- Check if merchant can repair
-    if CanMerchantRepair() then
+    if CanMerchantRepair and CanMerchantRepair() then
         local repairCost, canRepair = GetRepairAllCost()
 
         if canRepair and repairCost > 0 then
             -- Try to repair using guild bank funds first if available
             local useGuildBank = false
-            if CanGuildBankRepair() then
+            if CanGuildBankRepair and GetGuildBankWithdrawMoney and CanGuildBankRepair() then
                 local guildRepairable = GetGuildBankWithdrawMoney()
                 if guildRepairable == -1 or guildRepairable >= repairCost then
                     useGuildBank = true
@@ -26,7 +26,7 @@ function AutoRepairGear()
             RepairAllItems(useGuildBank)
 
             -- Print repair summary
-            local moneyStr = GetCoinTextureString(repairCost)
+            local moneyStr = Bimmies_FormatMoney(repairCost)
             if useGuildBank then
                 print(string.format("[Bimmies] Auto-repaired all items using guild bank funds: %s", moneyStr))
             else

@@ -12,7 +12,7 @@ function SellAllGreyItems()
     local itemsSold = 0
 
     -- Iterate through all bags
-    for bag = 0, 4 do
+    for bag = 0, Bimmies_GetLastBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
 
         for slot = 1, numSlots do
@@ -24,7 +24,7 @@ function SellAllGreyItems()
 
                 -- Get item details
                 local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType,
-                      itemStackCount, itemEquipLoc, iconFileDataID, sellPrice = C_Item.GetItemInfo(itemID)
+                      itemStackCount, itemEquipLoc, iconFileDataID, sellPrice = Bimmies_GetItemInfo(itemID)
 
                 -- Check if item is grey (poor quality, quality = 0)
                 if itemQuality == 0 and sellPrice and sellPrice > 0 then
@@ -39,7 +39,7 @@ function SellAllGreyItems()
 
     -- Print summary if items were sold
     if itemsSold > 0 then
-        local moneyStr = GetCoinTextureString(totalValue)
+        local moneyStr = Bimmies_FormatMoney(totalValue)
         print(string.format("[Bimmies] Auto-sold %d grey item stack(s) for %s", itemsSold, moneyStr))
     end
 end
@@ -55,7 +55,7 @@ function SellMarkedItems()
     local itemsSold = 0
 
     -- Iterate through all bags
-    for bag = 0, 4 do
+    for bag = 0, Bimmies_GetLastBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
 
         for slot = 1, numSlots do
@@ -69,7 +69,7 @@ function SellMarkedItems()
                 if BimmiesDB.markedItems[itemID] then
                     -- Get item details
                     local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType,
-                          itemStackCount, itemEquipLoc, iconFileDataID, sellPrice = C_Item.GetItemInfo(itemID)
+                          itemStackCount, itemEquipLoc, iconFileDataID, sellPrice = Bimmies_GetItemInfo(itemID)
 
                     if sellPrice and sellPrice > 0 then
                         -- Sell the item
@@ -84,7 +84,7 @@ function SellMarkedItems()
 
     -- Print summary if items were sold
     if itemsSold > 0 then
-        local moneyStr = GetCoinTextureString(totalValue)
+        local moneyStr = Bimmies_FormatMoney(totalValue)
         print(string.format("[Bimmies] Auto-sold %d marked item stack(s) for %s", itemsSold, moneyStr))
     end
 end

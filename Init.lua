@@ -3,6 +3,10 @@
 
 local addonName = "Bimmies"
 
+-- Keybinding labels (ESC > Keybindings > AddOns > Bimmies)
+BINDING_NAME_BIMMIES_DELETE = "Delete lowest-value grey item"
+BINDING_NAME_BIMMIES_DELETE_SOULSHARD = "Delete excess Soul Shard"
+
 -- Event frame for ADDON_LOADED only
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("ADDON_LOADED")
@@ -23,15 +27,27 @@ initFrame:SetScript("OnEvent", function(self, event, loadedAddon)
             enableQuestRewardHighlight = true,
             enablePickpocketTracker = true,
             enableMarkingOverlay = true,
+            enableNoPingChatTabs = true,
             enableSoulShardManager = false,
-            soulShardThreshold = 8
+            soulShardThreshold = 8,
+            showMinimapButton = true,
+            minimapAngle = 220
         }
         -- Backfill new settings for existing users
+        if BimmiesDB.settings.enableNoPingChatTabs == nil then
+            BimmiesDB.settings.enableNoPingChatTabs = true
+        end
         if BimmiesDB.settings.enableSoulShardManager == nil then
             BimmiesDB.settings.enableSoulShardManager = false
         end
         if BimmiesDB.settings.soulShardThreshold == nil then
             BimmiesDB.settings.soulShardThreshold = 8
+        end
+        if BimmiesDB.settings.showMinimapButton == nil then
+            BimmiesDB.settings.showMinimapButton = true
+        end
+        if BimmiesDB.settings.minimapAngle == nil then
+            BimmiesDB.settings.minimapAngle = 220
         end
 
         -- Unregister this frame after initialization is complete

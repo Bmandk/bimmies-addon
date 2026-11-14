@@ -5,13 +5,24 @@
 -- Table to track all Bagnon item buttons we've seen
 local bagnonButtonCache = {}
 
+local function IsBagnonActive()
+    return Bimmies_IsAddOnLoaded("Bagnon") or (_G.BagBrother ~= nil) or (_G.Bagnon ~= nil)
+end
+
 -- Function to update all stacks of a specific itemID
 function UpdateAllStacksOfItem(itemID)
     -- Check if Bagnon is active
-    local bagnonLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded("Bagnon")) or (_G.BagBrother ~= nil) or (_G.Bagnon ~= nil)
+    local bagnonLoaded = IsBagnonActive()
+
+    if not bagnonLoaded then
+        -- Blizzard bags: refreshing every visible button is cheap and handles
+        -- both the classic per-bag frames and the modern combined bag.
+        UpdateBlizzardBagOverlays()
+        return
+    end
 
     -- Iterate through all bags and slots
-    for bag = 0, 4 do
+    for bag = 0, Bimmies_GetLastBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
         if numSlots then
             for slot = 1, numSlots do
@@ -48,102 +59,147 @@ function UpdateAllStacksOfItem(itemID)
                                 if foundButton then break end
                             end
                         end
-                    else
-                        -- For Blizzard bags, use standard frame naming
-                        for i = 1, NUM_CONTAINER_FRAMES do
-                            local frameName = "ContainerFrame"..i
-                            local frame = _G[frameName]
-                            if frame and frame:GetID() == bag then
-                                for j = 1, numSlots do
-                                    local buttonName = frameName.."Item"..j
-                                    local button = _G[buttonName]
-                                    if button and button:GetID() == slot then
-                                        UpdateButtonOverlay(button, bag, slot)
-                                        foundButton = true
-                                        break
-                                    end
-                                end
-                            end
-                            if foundButton then break end
-                        end
                     end
                 end
             end
         end
     end
+end
+
+-- Buttons whose OnClick we've already hooked (weak keys so pooled buttons can be collected)
+local hookedButtons = setmetatable({}, { __mode = "k" })
+-- Container frames whose show/update we've already hooked
+local hookedFrames = {}
+
+-- Bag/slot for a Blizzard bag item button.
+-- Modern clients (Forever/Retail) expose GetBagID(); classic uses the parent frame's ID.
+local function GetButtonBagAndSlot(button)
+    local bag
+    if button.GetBagID then
+        bag = button:GetBagID()
+    elseif button.GetParent and button:GetParent() then
+        bag = button:GetParent():GetID()
+    end
+    return bag, button:GetID()
+end
+
+-- Ctrl+Right Click handler for Blizzard bag buttons
+local function OnBlizzardItemClick(self, mouseButton)
+    if mouseButton ~= "RightButton" or not IsControlKeyDown() then return end
+
+    local bag, slot = GetButtonBagAndSlot(self)
+    if type(bag) ~= "number" then return end
+
+    local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+    if itemInfo and itemInfo.itemID then
+        ToggleItemMarked(itemInfo.itemID)
+        UpdateBlizzardBagOverlays()
+    end
+end
+
+local function HookItemButton(button)
+    if hookedButtons[button] then return end
+    hookedButtons[button] = true
+    button:HookScript("OnClick", OnBlizzardItemClick)
+end
+
+-- All Blizzard container frames that may hold item buttons
+local function GetBlizzardContainerFrames()
+    local frames = {}
+    if _G.ContainerFrameCombinedBags then
+        table.insert(frames, _G.ContainerFrameCombinedBags)
+    end
+    for i = 1, (NUM_CONTAINER_FRAMES or 13) do
+        local frame = _G["ContainerFrame" .. i]
+        if frame then
+            table.insert(frames, frame)
+        end
+    end
+    return frames
+end
+
+-- Call fn(button) for each item button in a container frame
+local function ForEachItemButton(frame, fn)
+    if frame.EnumerateValidItems then
+        -- Modern bag UI
+        for _, button in frame:EnumerateValidItems() do
+            fn(button)
+        end
+    elseif frame.Items then
+        for _, button in ipairs(frame.Items) do
+            fn(button)
+        end
+    else
+        -- Classic bag UI: buttons are named ContainerFrameNItemM
+        local frameName = frame:GetName()
+        local numSlots = C_Container.GetContainerNumSlots(frame:GetID()) or 0
+        for j = 1, numSlots do
+            local button = _G[frameName .. "Item" .. j]
+            if button then
+                fn(button)
+            end
+        end
+    end
+end
+
+-- Call fn(button, bag, slot) for every item button in every visible Blizzard bag frame.
+-- Global so SlashCommands.lua debug helpers can reuse it.
+function Bimmies_ForEachBlizzardBagButton(fn)
+    for _, frame in ipairs(GetBlizzardContainerFrames()) do
+        if frame:IsShown() then
+            ForEachItemButton(frame, function(button)
+                local bag, slot = GetButtonBagAndSlot(button)
+                if type(bag) == "number" then
+                    fn(button, bag, slot)
+                end
+            end)
+        end
+    end
+end
+
+function UpdateBlizzardBagOverlays()
+    Bimmies_ForEachBlizzardBagButton(function(button, bag, slot)
+        HookItemButton(button)
+        UpdateButtonOverlay(button, bag, slot)
+    end)
 end
 
 -- Function to update all bag item overlays
 function UpdateBagItemOverlays()
-    -- Check if Bagnon is loaded
-    local bagnonLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded("Bagnon")) or (_G.BagBrother ~= nil) or (_G.Bagnon ~= nil)
-
-    if bagnonLoaded then
+    if IsBagnonActive() then
         UpdateBagnonOverlays()
     else
-        -- Default Blizzard bags
-        for i = 1, NUM_CONTAINER_FRAMES do
-            local frameName = "ContainerFrame"..i
-            local frame = _G[frameName]
-
-            if frame then
-                -- Get the bag ID from the frame (same as in click handler)
-                local bag = frame:GetID()
-                local numSlots = C_Container.GetContainerNumSlots(bag)
-
-                if numSlots and numSlots > 0 then
-                    -- Iterate through all item button indices
-                    for j = 1, numSlots do
-                        local buttonName = frameName.."Item"..j
-                        local button = _G[buttonName]
-
-                        if button then
-                            -- Get the slot ID from the button itself (same as in click handler)
-                            local slot = button:GetID()
-                            UpdateButtonOverlay(button, bag, slot)
-                        end
-                    end
-                end
-            end
-        end
+        UpdateBlizzardBagOverlays()
     end
 end
 
--- Hook into the global bag item click handler (for default Blizzard bags)
+-- Hook Blizzard bag frames so overlays refresh (and click hooks attach) whenever bags open or redraw
 function InitializeBlizzardBagHook()
-    -- Hook the modified click function that handles ctrl+clicks on bag items
-    hooksecurefunc("ContainerFrameItemButton_OnModifiedClick", function(self, button)
-        if button == "RightButton" and IsControlKeyDown() then
-            local bag = self:GetParent():GetID()
-            local slot = self:GetID()
-            local itemInfo = C_Container.GetContainerItemInfo(bag, slot)
+    local function DeferredUpdate()
+        C_Timer.After(0, UpdateBlizzardBagOverlays)
+    end
 
-            if itemInfo then
-                local itemID = itemInfo.itemID
-                local marked = ToggleItemMarked(itemID)
-
-                -- Get item link for display
-                local itemLink = C_Container.GetContainerItemLink(bag, slot)
-
-                -- Update this button immediately
-                UpdateButtonOverlay(self, bag, slot)
-
-                -- Update all other stacks of this item
-                UpdateAllStacksOfItem(itemID)
+    for _, frame in ipairs(GetBlizzardContainerFrames()) do
+        if not hookedFrames[frame] then
+            hookedFrames[frame] = true
+            frame:HookScript("OnShow", DeferredUpdate)
+            -- Modern bag UI redraws via a per-frame UpdateItems method
+            if type(frame.UpdateItems) == "function" then
+                hooksecurefunc(frame, "UpdateItems", DeferredUpdate)
             end
         end
-    end)
+    end
 
-    -- Hook ContainerFrame_Update to refresh overlays when bags are opened/updated
-    hooksecurefunc("ContainerFrame_Update", function(frame)
-        UpdateBagItemOverlays()
-    end)
+    -- Classic bag UI redraws via a global function
+    if type(ContainerFrame_Update) == "function" then
+        hooksecurefunc("ContainerFrame_Update", DeferredUpdate)
+    end
 end
 
 -- Hook into Bagnon's item button click handler
 function InitializeBagnonHook()
     -- Check if Bagnon is loaded
-    if not C_AddOns or not C_AddOns.IsAddOnLoaded("Bagnon") then
+    if not Bimmies_IsAddOnLoaded("Bagnon") then
         return false
     end
 
@@ -252,7 +308,7 @@ function UpdateBagnonOverlays()
     -- Also manually check visible item buttons as fallback
     -- Bagnon items are created with a prefix, try common patterns
     local patterns = {"ContainerFrame%dItem%d", "BagnonContainer%dItem%d"}
-    for bag = 0, 4 do
+    for bag = 0, Bimmies_GetLastBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag) or 0
         for slot = 1, numSlots do
             -- Try to find item buttons using various naming patterns

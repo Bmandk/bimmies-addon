@@ -16,7 +16,7 @@ coreFrame:RegisterEvent("QUEST_PROGRESS")
 coreFrame:RegisterEvent("QUEST_COMPLETE")
 coreFrame:RegisterEvent("QUEST_FINISHED")
 coreFrame:RegisterEvent("BAG_UPDATE_DELAYED")
-coreFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+coreFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 coreFrame:RegisterEvent("CHAT_MSG_LOOT")
 coreFrame:RegisterEvent("CHAT_MSG_MONEY")
 
@@ -29,6 +29,8 @@ coreFrame:SetScript("OnEvent", function(self, event, ...)
         Options_CreatePanel()
         BagHooks_Initialize()
         Pickpocket_Initialize()
+        NoPingChatTabs_Initialize()
+        MinimapButton_Initialize()
 
         -- Print welcome message
         print("[Bimmies] Loaded! Set your keybind in ESC > Keybindings > Bimmies, or use /bimmies")
@@ -62,7 +64,8 @@ coreFrame:SetScript("OnEvent", function(self, event, ...)
         local unit, castGUID, spellID = arg1, arg2, arg3
 
         -- Check if player cast Pick Pocket (spell ID 921)
-        if unit == "player" and spellID == 921 then
+        -- (modern clients may hand us a secret spellID in restricted content)
+        if unit == "player" and not Bimmies_IsSecret(spellID) and spellID == 921 then
             StartPickpocketTracking()
             -- Auto-finalize after 2 seconds (loot window timeout)
             C_Timer.After(2, FinalizePickpocketTracking)
@@ -73,7 +76,8 @@ coreFrame:SetScript("OnEvent", function(self, event, ...)
         local message = arg1
 
         -- Check if this is a player loot message during pickpocketing
-        if message then
+        -- (modern clients may make chat text secret; string ops on it would error)
+        if message and not Bimmies_IsSecret(message) then
             -- Pattern for item loot: "You receive loot: [ItemLink]xQuantity" or "You receive loot: [ItemLink]"
             -- Also handle "You receive item: [ItemLink]" variant
             local itemLink, quantity = message:match("You receive loot: (.+)x(%d+)")
@@ -98,7 +102,7 @@ coreFrame:SetScript("OnEvent", function(self, event, ...)
         -- arg1 = message
         local message = arg1
 
-        if message then
+        if message and not Bimmies_IsSecret(message) then
             -- Pattern for money loot
             -- Examples: "You loot 1 Gold, 50 Silver, 25 Copper" or "You loot 50 Silver"
             local gold = message:match("(%d+) Gold") or 0

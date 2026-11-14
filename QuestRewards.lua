@@ -13,12 +13,25 @@ local function ClearRewardIcons()
     wipe(rewardIcons)
 end
 
-local function CreateRewardIcon(parent)
-    local icon = parent:CreateTexture(nil, "OVERLAY")
-    icon:SetTexture("Interface\\MoneyFrame\\UI-GoldIcon")
-    icon:SetSize(16, 16)
-    icon:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 0)
-    return icon
+local function GetRewardIcon(parent)
+    if not parent.bimmiesRewardIcon then
+        local icon = parent:CreateTexture(nil, "OVERLAY")
+        icon:SetTexture("Interface\\MoneyFrame\\UI-GoldIcon")
+        icon:SetSize(16, 16)
+        icon:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 0)
+        parent.bimmiesRewardIcon = icon
+    end
+    return parent.bimmiesRewardIcon
+end
+
+-- Locate the reward choice button for a given index
+local function GetRewardButton(index)
+    -- Modern clients (Forever/Retail) pool reward buttons; ask QuestInfo for it
+    if QuestInfo_GetRewardButton and QuestInfoFrame and QuestInfoFrame.rewardsFrame then
+        local button = QuestInfo_GetRewardButton(QuestInfoFrame.rewardsFrame, index)
+        if button then return button end
+    end
+    return _G["QuestInfoRewardsFrameQuestInfoItem" .. index] or _G["QuestInfoItem" .. index]
 end
 
 function HighlightBestReward()
@@ -44,9 +57,9 @@ function HighlightBestReward()
         local itemLink = GetQuestItemLink("choice", i)
 
         if itemLink then
-            local itemID = GetItemInfoFromHyperlink(itemLink)
+            local itemID = Bimmies_GetItemIDFromLink(itemLink)
             if itemID then
-                local _, _, _, _, _, _, _, _, _, _, sellPrice = C_Item.GetItemInfo(itemID)
+                local _, _, _, _, _, _, _, _, _, _, sellPrice = Bimmies_GetItemInfo(itemID)
 
                 if sellPrice and sellPrice > bestValue then
                     bestValue = sellPrice
@@ -58,15 +71,10 @@ function HighlightBestReward()
 
     -- Add gold icon to the best value item
     if bestIndex and bestValue > 0 then
-        local rewardButton = _G["QuestInfoRewardsFrameQuestInfoItem" .. bestIndex]
-
-        if not rewardButton then
-            -- Try alternate frame name for quest complete
-            rewardButton = _G["QuestInfoItem" .. bestIndex]
-        end
+        local rewardButton = GetRewardButton(bestIndex)
 
         if rewardButton then
-            local icon = CreateRewardIcon(rewardButton)
+            local icon = GetRewardIcon(rewardButton)
             icon:Show()
             table.insert(rewardIcons, icon)
         end

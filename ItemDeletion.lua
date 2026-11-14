@@ -7,7 +7,7 @@ local function FindLowestValueGreyItem()
     local lowestItemInfo = nil
 
     -- Iterate through all bags (0-4, where 0 is backpack and 1-4 are bags)
-    for bag = 0, 4 do
+    for bag = 0, Bimmies_GetLastBagID() do
         local numSlots = C_Container.GetContainerNumSlots(bag)
 
         for slot = 1, numSlots do
@@ -19,7 +19,7 @@ local function FindLowestValueGreyItem()
 
                 -- Get item details
                 local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType,
-                      itemStackCount, itemEquipLoc, iconFileDataID, sellPrice = C_Item.GetItemInfo(itemID)
+                      itemStackCount, itemEquipLoc, iconFileDataID, sellPrice = Bimmies_GetItemInfo(itemID)
 
                 -- Check if item is grey (poor quality, quality = 0)
                 if itemQuality == 0 and sellPrice and sellPrice > 0 then
@@ -61,7 +61,7 @@ function Bimmies_DeleteLowestGreyItem()
         DeleteCursorItem()
 
         -- Print what was deleted with coin textures
-        local moneyStr = GetCoinTextureString(totalValue)
+        local moneyStr = Bimmies_FormatMoney(totalValue)
         print(string.format("[Bimmies] Deleted: %s x%d (Total value: %s)",
             itemLink,
             stackCount,
